@@ -20,7 +20,8 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import AccountDetailsModal from "@/components/AccountDetailsModal"; // ⬅️ new modal
+import AccountDetailsModal from "@/components/AccountDetailsModal";
+import { Account } from "@/lib/account";
 
 type Transaction = {
   _id: string;
@@ -33,16 +34,6 @@ type Transaction = {
   createdAt: string;
   updatedAt?: string;
   userId?: string;
-};
-
-type Account = {
-  _id: string;
-  name: string;
-  type: string;
-  accountNumber?: string;
-  cardNumber?: string;
-  expiryDate?: string;
-  cvv?: string;
 };
 
 export default function Dashboard() {
