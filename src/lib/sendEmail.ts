@@ -9,6 +9,8 @@ export async function sendEmail(to: string, subject: string, html: string) {
     },
   });
 
+  console.log(transporter);
+
   await transporter.sendMail(
     {
       from: "TrackIt",

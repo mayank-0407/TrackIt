@@ -31,7 +31,7 @@ export const authOptions: NextAuthOptions = {
           if (!user.isVerified) {
             const token = generateEmailToken(email);
             const verifyUrl = `${process.env.BASE_URL}/verify?token=${token}`;
-
+            console.log(token, verifyUrl);
             await sendEmailVerification(email, verifyUrl);
             throw new Error(
               "Email not verified. Please check your inbox we have resent verification link."
