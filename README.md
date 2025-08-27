@@ -1,1 +1,104 @@
-# TrackIt
+# 📊 TrackIt – Expense Tracker  
+
+**TrackIt** is a full-stack expense tracking application built with **Next.js, TypeScript, TailwindCSS, and MongoDB**.  
+It allows users to register, verify their email, log in, and manage their expenses with accounts and categories.  
+
+---
+
+## ✨ Features  
+
+- 🔐 **Authentication** – Signup & Login with email verification  
+- 📧 **Email Verification** – Secure account activation via Gmail (SMTP / App Password)  
+- 🏦 **Accounts Management** – Add multiple accounts (Bank, Wallet, etc.)  
+- 🗂️ **Categories** – Organize expenses into categories  
+- 💸 **Expense Tracking** – Add, edit, and delete expenses  
+- 📊 **Dashboard** – Track spending visually  
+- 👤 **Profile Management** – Edit profile & change password  
+
+---
+
+## 🛠️ Tech Stack  
+
+- **Frontend:** Next.js 14 (App Router) + TypeScript + TailwindCSS  
+- **Backend:** Next.js API Routes  
+- **Database:** MongoDB (Mongoose ODM)  
+- **Auth & Security:** JWT + bcrypt + Nodemailer (Gmail SMTP)  
+- **Deployment:** Vercel  
+
+---
+
+## ⚙️ Installation & Setup  
+
+### 1. Clone the repo  
+```bash
+git clone https://github.com/yourusername/trackit.git
+cd trackit
+```
+
+### 2. Install dependencies
+```bash
+npm install
+```
+
+### 3. Setup environment variables
+```bash
+Create a .env.local file in root:
+
+# MongoDB
+MONGO_URI=your_mongodb_connection_string
+
+# JWT Secret
+JWT_SECRET=your_jwt_secret_key
+
+# Email (Gmail App Password required)
+EMAIL_USER=your_gmail@gmail.com
+EMAIL_PASS=your_google_app_password
+```
+
+⚠️ Note: For Gmail, enable 2FA and create an App Password. Normal Gmail password won’t work.
+
+### 4. Run the app locally
+```bash
+npm run dev
+```
+
+Open http://localhost:3000
+
+### 5. Deploy on Vercel
+
+- Push code to GitHub
+- Import project into Vercel
+- Add environment variables in Vercel Dashboard → Settings → Environment Variables
+- Deploy 🚀
+
+---
+## 📧 Email Setup
+
+TrackIt uses Nodemailer + Gmail SMTP for sending verification emails.
+If you face issues on Vercel:
+
+- Use App Password instead of your Gmail password.
+- Or switch to Resend / SendGrid (recommended for production).
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+1. Fork the repo
+2. Create a branch:
+```bash
+git checkout -b feature/your-feature
+```
+
+3. Commit changes:
+```bash
+git commit -m "Added new feature"
+```
+
+4. Push to branch:
+```bash
+git push origin feature/your-feature
+```
+
+5. Create a Pull Request
