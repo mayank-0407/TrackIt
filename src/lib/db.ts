@@ -12,7 +12,6 @@ if (!cached) cached = (global as any).mongoose = { conn: null, promise: null };
 
 export async function connectDB() {
   if (cached.conn) return cached.conn;
-  console.log("SJKAD");
   if (!cached.promise) {
     cached.promise = mongoose.connect(MONGODB_URI, { dbName: "trackit" });
   }

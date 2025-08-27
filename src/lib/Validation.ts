@@ -16,6 +16,16 @@ export const AccountSchema = z.object({
   type: z.enum(["cash", "bank", "credit", "other"]).default("other"),
   currency: z.string().default("INR"),
   balance: z.number().default(0),
+
+  // Bank
+  bankName: z.string().optional(),
+  accountNumber: z.string().optional(),
+  ifscCode: z.string().optional(),
+
+  // Credit Card fields
+  cardNumber: z.string().optional(),
+  expiryDate: z.string().optional(),
+  cvv: z.string().optional(),
 });
 
 export const TransactionSchema = z.object({
@@ -25,3 +35,5 @@ export const TransactionSchema = z.object({
   note: z.string().optional(),
   date: z.coerce.date(),
 });
+
+export type Account = z.infer<typeof AccountSchema>;

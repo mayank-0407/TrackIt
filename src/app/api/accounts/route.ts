@@ -4,6 +4,7 @@ import Account from "@/models/Account";
 import { AccountSchema } from "@/lib/Validation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/options";
+import { encrypt } from "@/lib/encryption";
 
 export async function POST(req: Request) {
   try {
@@ -19,10 +20,19 @@ export async function POST(req: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const account = await Account.create({
+    const data = {
       ...parsed.data,
+      accountNumber: parsed.data.accountNumber
+        ? encrypt(parsed.data.accountNumber)
+        : undefined,
+      cardNumber: parsed.data.cardNumber
+        ? encrypt(parsed.data.cardNumber)
+        : undefined,
+      cvv: parsed.data.cvv ? encrypt(parsed.data.cvv) : undefined,
       userId: session.user.id,
-    });
+    };
+
+    const account = await Account.create(data);
 
     return NextResponse.json({ account }, { status: 201 });
   } catch (error) {
@@ -41,7 +51,6 @@ export async function GET() {
     const userId = session.user.id;
 
     const accounts = await Account.find({ userId });
-    console.log("ACC", accounts);
     return NextResponse.json({ accounts }, { status: 200 });
   } catch (error) {
     console.error("Fetch accounts error:", error);

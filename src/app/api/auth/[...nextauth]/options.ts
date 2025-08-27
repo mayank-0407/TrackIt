@@ -28,13 +28,9 @@ export const authOptions: NextAuthOptions = {
           const user: any = await User.findOne({ email });
           if (!user) throw new Error("The Entered User doesn't exists!");
 
-          console.log("HI", user);
           if (!user.isVerified) {
-            console.log("Hi");
             const token = generateEmailToken(email);
-            console.log(token);
             const verifyUrl = `${process.env.BASE_URL}/verify?token=${token}`;
-            console.log("Hi1", verifyUrl);
 
             await sendEmailVerification(email, verifyUrl);
             throw new Error(

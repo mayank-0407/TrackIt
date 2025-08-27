@@ -22,13 +22,11 @@ export default function LoginPage() {
         email: formData.get("email"),
         password: formData.get("password"),
       });
-      console.log(res);
 
       setLoading(false);
       if (res?.ok) router.push("/dashboard");
       else toast.error(res?.error);
     } catch (err: any) {
-      console.log(err);
       toast.error(err.error);
     }
   }

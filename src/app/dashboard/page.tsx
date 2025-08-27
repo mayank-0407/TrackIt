@@ -20,6 +20,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import AccountDetailsModal from "@/components/AccountDetailsModal"; // ⬅️ new modal
 
 type Transaction = {
   _id: string;
@@ -28,14 +29,21 @@ type Transaction = {
   type: "expense" | "income" | "transfer";
   amount: number;
   note?: string;
-  date: string;      
-  createdAt: string;  
-  updatedAt?: string;  
-  userId?: string;     
+  date: string;
+  createdAt: string;
+  updatedAt?: string;
+  userId?: string;
 };
 
-
-type Account = { _id: string; name: string; type: string };
+type Account = {
+  _id: string;
+  name: string;
+  type: string;
+  accountNumber?: string;
+  cardNumber?: string;
+  expiryDate?: string;
+  cvv?: string;
+};
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -54,6 +62,10 @@ export default function Dashboard() {
   const [accountSummary, setAccountSummary] = useState<
     { accountId: string; name: string; type: string; net: number }[]
   >([]);
+
+  // selected account for modal
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [isAccountDetailsOpen, setIsAccountDetailsOpen] = useState(false);
 
   // Fetch accounts
   const fetchAccounts = async () => {
@@ -79,15 +91,12 @@ export default function Dashboard() {
         },
       });
       const txs: Transaction[] = res.data.transactions || [];
-      console.log(txs);
       txs.sort((a, b) => {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
-
         if (dateB.getTime() !== dateA.getTime()) {
           return dateB.getTime() - dateA.getTime();
         }
-
         const createdA = new Date(a.createdAt);
         const createdB = new Date(b.createdAt);
         return createdB.getTime() - createdA.getTime();
@@ -117,16 +126,10 @@ export default function Dashboard() {
         [key: string]: { name: string; type: string; net: number };
       } = {};
 
-      // initialize all accounts with 0 net
       accounts.forEach((acc) => {
-        accSummary[acc._id] = {
-          name: acc.name,
-          type: acc.type,
-          net: 0,
-        };
+        accSummary[acc._id] = { name: acc.name, type: acc.type, net: 0 };
       });
 
-      // calculate net for accounts with transactions
       filtered.forEach((t) => {
         if (t.type === "income") {
           accSummary[t.accountId._id].net += t.amount;
@@ -161,7 +164,7 @@ export default function Dashboard() {
       setTransactions((prev) => [res.data.transaction, ...prev]);
       toast.success("Transaction added successfully");
       setIsModalOpen(false);
-      fetchTransactions(); // refresh summary after new transaction
+      fetchTransactions();
     } catch (error: any) {
       console.error("Error adding transaction:", error);
       toast.error(error.response?.data?.message || "Failed to add transaction");
@@ -175,7 +178,7 @@ export default function Dashboard() {
       setAccounts((prev) => [...prev, res.data.account]);
       toast.success("Account added successfully");
       setIsAccountModalOpen(false);
-      fetchTransactions(); // refresh account summary
+      fetchTransactions();
     } catch (error: any) {
       console.error("Error adding account:", error);
       toast.error(error.response?.data?.message || "Failed to add account");
@@ -187,7 +190,9 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    fetchTransactions();
+    if (accounts.length > 0) {
+      fetchTransactions();
+    }
   }, [accounts, filterAccount]);
 
   // chart data
@@ -256,7 +261,16 @@ export default function Dashboard() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {accountSummary.map((acc) => (
-              <Card key={acc.accountId} className="shadow-sm p-4">
+              <Card
+                key={acc.accountId}
+                className="shadow-sm p-4 hover:shadow-md transition cursor-pointer"
+                onClick={() => {
+                  const account =
+                    accounts.find((a) => a._id === acc.accountId) || null;
+                  setSelectedAccount(account);
+                  setIsAccountDetailsOpen(true);
+                }}
+              >
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="text-lg font-semibold">{acc.name}</h3>
@@ -405,6 +419,11 @@ export default function Dashboard() {
         open={isAccountModalOpen}
         onClose={() => setIsAccountModalOpen(false)}
         onSubmit={handleAddAccount}
+      />
+      <AccountDetailsModal
+        open={isAccountDetailsOpen}
+        onClose={() => setIsAccountDetailsOpen(false)}
+        account={selectedAccount}
       />
     </div>
   );
