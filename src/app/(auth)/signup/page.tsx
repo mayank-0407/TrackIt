@@ -6,6 +6,7 @@ import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -16,6 +17,9 @@ export default function SignupPage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    if (formData.get("password") != formData.get("confirmpassword")) {
+      toast.error("Passwords Mush Match!");
+    }
 
     try {
       const res = await axios.post("/api/auth/signup", {
@@ -25,10 +29,11 @@ export default function SignupPage() {
       });
 
       if (res.status === 200) {
+        toast.success("Signup Successful! Now Verify the email to Login");
         router.push("/login");
       }
     } catch (err: any) {
-      alert(err.response?.data?.error || "Signup failed");
+      toast.error(err.response?.data?.error || "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -44,7 +49,18 @@ export default function SignupPage() {
           <form onSubmit={handleSignup} className="space-y-4">
             <Input name="name" placeholder="Full Name" required />
             <Input name="email" placeholder="Email" type="email" required />
-            <Input name="password" placeholder="Password" type="password" required />
+            <Input
+              name="password"
+              placeholder="Password"
+              type="password"
+              required
+            />
+            <Input
+              name="confirmpassword"
+              placeholder="Confirm Password"
+              type="password"
+              required
+            />
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Sign Up"}
             </Button>

@@ -6,6 +6,9 @@ import bcrypt from "bcrypt";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import { LoginSchema } from "@/lib/Validation";
+import { generateEmailToken } from "@/lib/emailToken";
+import { sendEmail } from "@/lib/sendEmail";
+import { sendEmailVerification } from "@/lib/sendEmailVerification";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -21,8 +24,24 @@ export const authOptions: NextAuthOptions = {
         const { email, password } = parsed.data;
         try {
           await connectDB();
+
           const user: any = await User.findOne({ email });
-          if (!user) return null;
+          if (!user) throw new Error("The Entered User doesn't exists!");
+
+          console.log("HI", user);
+          if (!user.isVerified) {
+            console.log("Hi");
+            const token = generateEmailToken(email);
+            console.log(token);
+            const verifyUrl = `${process.env.BASE_URL}/verify?token=${token}`;
+            console.log("Hi1", verifyUrl);
+
+            await sendEmailVerification(email, verifyUrl);
+            throw new Error(
+              "Email not verified. Please check your inbox we have resent verification link."
+            );
+          }
+
           const ok = await bcrypt.compare(password, user.password);
           if (ok) {
             return {
@@ -32,7 +51,7 @@ export const authOptions: NextAuthOptions = {
               image: user.image,
             };
           } else {
-            throw new Error("Incoorect Password");
+            throw new Error("Incorrect Password");
             return null;
           }
         } catch (e: any) {

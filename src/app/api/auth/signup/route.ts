@@ -4,6 +4,8 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import { SignUpSchema } from "@/lib/Validation";
 import Account from "@/models/Account";
+import jwt from "jsonwebtoken";
+import { sendEmailVerification } from "@/lib/sendEmailVerification";
 
 export async function POST(req: Request) {
   try {
@@ -38,7 +40,19 @@ export async function POST(req: Request) {
     });
     await defaultAccount.save();
 
-    return NextResponse.json({ success: true });
+    const token = jwt.sign(
+      { email, exp: Math.floor(Date.now() / 1000) + 3 * 60 },
+      process.env.JWT_SECRET!
+    );
+
+    const verifyUrl = `${process.env.BASE_URL}/verify?token=${token}`;
+
+    await sendEmailVerification(email, verifyUrl);
+
+    return NextResponse.json({
+      success: true,
+      message: "Verification email sent",
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
