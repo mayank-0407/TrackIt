@@ -33,6 +33,7 @@ export default function AddTransactionModal({
     amount: "",
     note: "",
     date: new Date().toISOString().split("T")[0],
+    transferAccountId: "",
   });
 
   const handleChange = (
@@ -41,7 +42,10 @@ export default function AddTransactionModal({
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
       await onSubmit({
         ...formData,
@@ -52,12 +56,15 @@ export default function AddTransactionModal({
         type: "expense",
         amount: "",
         note: "",
-        date: new Date().toISOString().split("T")[0]
+        date: new Date().toISOString().split("T")[0],
+        transferAccountId: "",
       }); // reset
       onClose();
     } catch (error: any) {
       console.error("Error in AddTransactionModal:", error);
       toast.error("Failed to add transaction");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -136,13 +143,36 @@ export default function AddTransactionModal({
               onChange={handleChange}
             />
           </div>
+
+          {formData.type === "transfer" ? (
+            <div>
+              <Label>Transfer Account</Label>
+              <select
+                name="transferAccountId"
+                value={formData.transferAccountId}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select an Transfer account</option>
+                {accounts.map((acc) => (
+                  <option key={acc._id} value={acc._id}>
+                    {acc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
 
         <DialogFooter className="mt-4">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Save</Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Saving.." : "Save"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

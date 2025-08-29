@@ -49,6 +49,10 @@ export default function Dashboard() {
   const [expenses, setExpenses] = useState(0);
   const [balance, setBalance] = useState(0);
 
+  const [deletingTransactionId, setDeletingTransactionId] = useState<
+    string | null
+  >(null);
+
   // account balances state
   const [accountSummary, setAccountSummary] = useState<
     { accountId: string; name: string; type: string; net: number }[]
@@ -152,13 +156,31 @@ export default function Dashboard() {
     try {
       const parsed = TransactionSchema.parse(data);
       const res = await axios.post("/api/transactions", parsed);
-      setTransactions((prev) => [res.data.transaction, ...prev]);
-      toast.success("Transaction added successfully");
-      setIsModalOpen(false);
-      fetchTransactions();
+      if (res.status === 201) {
+        setTransactions((prev) => [res.data.transaction, ...prev]);
+        toast.success("Transaction added successfully");
+        setIsModalOpen(false);
+        fetchTransactions();
+      } else if (res.status === 203) {
+        toast.error(res.data.error);
+      }
     } catch (error: any) {
       console.error("Error adding transaction:", error);
       toast.error(error.response?.data?.message || "Failed to add transaction");
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId: any) => {
+    setDeletingTransactionId(transactionId);
+    try {
+      await axios.delete(`/api/transactions/${transactionId}`);
+      toast.success("Transaction deleted successfully");
+      setTransactions((prev) => prev.filter((tx) => tx._id !== transactionId));
+    } catch (err) {
+      console.error("Error deleting Transaction:", err);
+      toast.error("Failed to delete transaction");
+    } finally {
+      setDeletingTransactionId(null);
     }
   };
 
@@ -174,6 +196,15 @@ export default function Dashboard() {
       console.error("Error adding account:", error);
       toast.error(error.response?.data?.message || "Failed to add account");
     }
+  };
+
+  const confirmDelete = (id: string) => {
+    toast.warning("Are you sure you want to delete this transaction?", {
+      action: {
+        label: "Delete",
+        onClick: () => handleDeleteTransaction(id),
+      },
+    });
   };
 
   useEffect(() => {
@@ -251,13 +282,13 @@ export default function Dashboard() {
             Account Summary (This Month)
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {accountSummary.map((acc) => (
+            {accounts.map((acc) => (
               <Card
-                key={acc.accountId}
+                key={acc._id}
                 className="shadow-sm p-4 hover:shadow-md transition cursor-pointer"
                 onClick={() => {
                   const account =
-                    accounts.find((a) => a._id === acc.accountId) || null;
+                    accounts.find((a) => a._id === acc._id) || null;
                   setSelectedAccount(account);
                   setIsAccountDetailsOpen(true);
                 }}
@@ -269,11 +300,11 @@ export default function Dashboard() {
                   </div>
                   <div
                     className={`text-xl font-bold ${
-                      acc.net >= 0 ? "text-green-600" : "text-red-600"
+                      acc.balance >= 0 ? "text-green-600" : "text-red-600"
                     }`}
                   >
-                    {acc.net >= 0 ? "+" : "-"}₹
-                    {Math.abs(acc.net).toLocaleString()}
+                    {acc.balance >= 0 ? "+" : "-"}₹
+                    {Math.abs(acc.balance).toLocaleString()}
                   </div>
                 </div>
               </Card>
@@ -366,6 +397,7 @@ export default function Dashboard() {
                   <th className="px-4 py-2 text-left">Account</th>
                   <th className="px-4 py-2 text-left">Note</th>
                   <th className="px-4 py-2 text-left">Date</th>
+                  <th className="px-4 py-2 text-left">Delete Transaction</th>
                 </tr>
               </thead>
               <tbody>
@@ -390,6 +422,19 @@ export default function Dashboard() {
                     <td className="px-4 py-2">{tx.note || "N/A"}</td>
                     <td className="px-4 py-2">
                       {new Date(tx.date).toLocaleDateString()}
+                    </td>
+                    <td>
+                      <div className="pt-6 flex justify-start">
+                        <Button
+                          variant="destructive"
+                          onClick={() => confirmDelete(tx._id)}
+                          disabled={deletingTransactionId === tx._id}
+                        >
+                          {deletingTransactionId === tx._id
+                            ? "Deleting..."
+                            : "Delete"}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

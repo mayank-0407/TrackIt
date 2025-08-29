@@ -34,6 +34,7 @@ export const TransactionSchema = z.object({
   amount: z.number().positive(),
   note: z.string().optional(),
   date: z.coerce.date(),
+  transferAccountId: z.string().optional(),
 });
 
 export type Account = z.infer<typeof AccountSchema>;

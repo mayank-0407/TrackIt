@@ -38,29 +38,39 @@ export default function AddAccountModal({ open, onClose, onSubmit }: Props) {
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
 
-  const handleSubmit = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
     if (!name) return;
+    setIsSubmitting(true);
 
-    onSubmit({
-      name,
-      type,
-      bankName: bankName || undefined,
-      accountNumber: accountNumber || undefined,
-      ifscCode: ifscCode || undefined,
-      cardNumber: cardNumber || undefined,
-      expiryDate: expiryDate || undefined,
-      cvv: cvv || undefined,
-    });
+    try {
+      await onSubmit({
+        name,
+        type,
+        bankName: bankName || undefined,
+        accountNumber: accountNumber || undefined,
+        ifscCode: ifscCode || undefined,
+        cardNumber: cardNumber || undefined,
+        expiryDate: expiryDate || undefined,
+        cvv: cvv || undefined,
+      });
 
-    // reset fields
-    setName("");
-    setType("other");
-    setBankName("");
-    setAccountNumber("");
-    setIfscCode("");
-    setCardNumber("");
-    setExpiryDate("");
-    setCvv("");
+      // reset fields if successful
+      setName("");
+      setType("other");
+      setBankName("");
+      setAccountNumber("");
+      setIfscCode("");
+      setCardNumber("");
+      setExpiryDate("");
+      setCvv("");
+      onClose();
+    } catch (error) {
+      console.error("Error adding account:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -151,8 +161,8 @@ export default function AddAccountModal({ open, onClose, onSubmit }: Props) {
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button className="bg-green-600 text-white" onClick={handleSubmit}>
-              Add Account
+            <Button className="bg-green-600 text-white" onClick={handleSubmit} disabled={isSubmitting || !name}>
+               {isSubmitting ? "Adding..." : "Add Account"}
             </Button>
           </div>
         </div>

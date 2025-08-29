@@ -4,6 +4,11 @@ const TransactionSchema = new Schema(
   {
     userId: { type: Types.ObjectId, ref: "User", required: true, index: true },
     accountId: { type: Types.ObjectId, ref: "Account", required: true },
+    transferAccountId: {
+      type: Types.ObjectId,
+      ref: "Account",
+      required: false,
+    },
     type: {
       type: String,
       enum: ["expense", "income", "transfer"],
