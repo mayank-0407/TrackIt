@@ -37,4 +37,9 @@ export const TransactionSchema = z.object({
   transferAccountId: z.string().optional(),
 });
 
+export const ForgotPasswordSchema = z.object({
+  email: z.string(),
+  password: z.string().min(8).optional(),
+});
+
 export type Account = z.infer<typeof AccountSchema>;

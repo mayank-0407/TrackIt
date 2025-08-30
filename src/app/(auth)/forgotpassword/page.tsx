@@ -1,33 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import axios from "axios";
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+  async function handleForgotPassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     try {
       const formData = new FormData(e.currentTarget);
-      const res = await signIn("credentials", {
-        redirect: false,
+
+      const res = await axios.post("/api/auth/forgotpassword", {
         email: formData.get("email"),
-        password: formData.get("password"),
       });
 
-      setLoading(false);
-      if (res?.ok) router.push("/dashboard");
-      else toast.error(res?.error);
+      if (res?.status === 200) {
+        toast.success("Check your email to reset your password!");
+        router.push("/login");
+      } else toast.error(res?.data.error);
     } catch (err: any) {
       toast.error(err.error);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -35,25 +37,22 @@ export default function LoginPage() {
     <div className="flex justify-center items-center h-screen bg-gray-50">
       <Card className="w-[400px] shadow-xl">
         <CardHeader>
-          <CardTitle className="text-center text-2xl">Login</CardTitle>
+          <CardTitle className="text-center text-2xl">
+            Forgot Password?
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleForgotPassword} className="space-y-4">
             <Input name="email" placeholder="Email" type="email" required />
-            <Input
-              name="password"
-              placeholder="Password"
-              type="password"
-              required
-            />
+
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
+              {loading ? "Submitting..." : "Submit"}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm">
-            Forgot Password?{" "}
-            <a href="/forgotpassword" className="text-blue-600 hover:underline">
-              Click here
+            Already have an account?{" "}
+            <a href="/login" className="text-blue-600 hover:underline">
+              Login
             </a>
           </p>
           <p className="mt-2 text-center text-sm">

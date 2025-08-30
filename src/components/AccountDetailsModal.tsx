@@ -51,7 +51,6 @@ export default function AccountDetailsModal({
         accountId: account._id,
         field,
       });
-      console.log(res);
       if (res.status === 204) toast.error(res.data.error);
       setRevealed((prev) => ({
         ...prev,
