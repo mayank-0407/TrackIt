@@ -22,7 +22,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid field" }, { status: 400 });
     }
 
-    const value = decrypt(account[field]);
+    const encryptedValue = account[field];
+    if (!encryptedValue) {
+      return NextResponse.json(
+        { error: "Field not available" },
+        { status: 404 }
+      );
+    }
+
+    let value: string;
+    try {
+      value = decrypt(encryptedValue);
+    } catch (e) {
+      console.error("Decryption error", e);
+      return NextResponse.json(
+        { error: "Failed to decrypt value" },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ value }, { status: 200 });
   } catch (err) {
     console.error("Reveal error", err);

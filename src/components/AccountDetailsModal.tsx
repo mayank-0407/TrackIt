@@ -9,15 +9,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner"; // optional if you use toast notifications
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 import { Account } from "@/lib/account";
+
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   account: Account | null;
-  onDeleted?: (id: string) => void; // parent can refresh after delete
+  onDeleted?: (id: string) => void;
+  onUpdated?: (account: Account) => void;
 };
 
 export default function AccountDetailsModal({
@@ -25,9 +35,13 @@ export default function AccountDetailsModal({
   onClose,
   account,
   onDeleted,
+  onUpdated,
 }: Props) {
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editingSubmitting, setEditingSubmitting] = useState(false);
+  const [formData, setFormData] = useState<Partial<Account>>({});
 
   if (!account) return null;
 
@@ -37,12 +51,15 @@ export default function AccountDetailsModal({
         accountId: account._id,
         field,
       });
+      console.log(res);
+      if (res.status === 204) toast.error(res.data.error);
       setRevealed((prev) => ({
         ...prev,
         [field]: res.data.value,
       }));
-    } catch (err) {
-      console.error("Error revealing field:", err);
+    } catch (err: any) {
+      console.error("Error revealing field:", err.response.data.error);
+      toast.error(err.response.data.error);
     }
   };
 
@@ -69,7 +86,33 @@ export default function AccountDetailsModal({
     }
   };
 
-  // 🔹 Decide which fields to show
+  const handleEditSave = async () => {
+    try {
+      setEditingSubmitting(true);
+      const res = await axios.put(`/api/accounts/${account._id}`, formData);
+      toast.success("Account updated successfully");
+      onUpdated?.(res.data);
+      setEditing(false);
+    } catch (err) {
+      console.error("Error updating account:", err);
+      toast.error("Failed to update account");
+    } finally {
+      setEditingSubmitting(false);
+    }
+  };
+
+  const handleFieldChange = (key: keyof Account, value: string | number) => {
+    setFormData((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const handleClose = () => {
+    setEditing(false);
+    onClose();
+  };
+
   let fields: { key: keyof Account; label: string; sensitive?: boolean }[] = [];
 
   if (account.type === "credit") {
@@ -99,7 +142,7 @@ export default function AccountDetailsModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
@@ -109,7 +152,7 @@ export default function AccountDetailsModal({
 
         <div className="space-y-4">
           {fields.map(({ key, label, sensitive }) => {
-            const value = account[key];
+            const value = formData[key] ?? account[key];
             const isRevealed = revealed[key as string];
 
             return (
@@ -119,7 +162,43 @@ export default function AccountDetailsModal({
               >
                 <span className="font-medium">{label}</span>
 
-                {sensitive ? (
+                {editing ? (
+                  <div className="flex items-center gap-2">
+                    {key === "accountNumber" && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="text-gray-500 hover:text-gray-700"
+                            >
+                              <Info size={16} />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>
+                              Remove this and enter a new account number if you
+                              want to update.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    <Input
+                      className="w-40"
+                      value={value as any}
+                      type={typeof value === "number" ? "number" : "text"}
+                      onChange={(e) =>
+                        handleFieldChange(
+                          key,
+                          typeof value === "number"
+                            ? Number(e.target.value)
+                            : e.target.value
+                        )
+                      }
+                    />
+                  </div>
+                ) : sensitive ? (
                   <div className="flex items-center gap-2">
                     <span className="text-gray-600">
                       {isRevealed || "••••••••"}
@@ -155,15 +234,36 @@ export default function AccountDetailsModal({
           })}
         </div>
 
-        {/* 🔹 Delete Button */}
-        <div className="pt-6 flex justify-end">
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={deleting}
-          >
-            {deleting ? "Deleting..." : "Delete Account"}
-          </Button>
+        <div className="pt-6 flex justify-end gap-2">
+          {editing ? (
+            <>
+              <Button onClick={() => handleEditSave()}>
+                {editingSubmitting ? "Saving..." : "Save"}
+              </Button>
+              <Button variant="secondary" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFormData(account);
+                  setEditing(true);
+                }}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </Button>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

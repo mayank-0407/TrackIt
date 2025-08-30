@@ -22,6 +22,7 @@ import {
 } from "recharts";
 import AccountDetailsModal from "@/components/AccountDetailsModal";
 import { Account } from "@/lib/account";
+import EditTransactionModal from "@/components/EditTransactionModal";
 
 type Transaction = {
   _id: string;
@@ -61,6 +62,10 @@ export default function Dashboard() {
   // selected account for modal
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [isAccountDetailsOpen, setIsAccountDetailsOpen] = useState(false);
+
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Fetch accounts
   const fetchAccounts = async () => {
@@ -205,6 +210,31 @@ export default function Dashboard() {
         onClick: () => handleDeleteTransaction(id),
       },
     });
+  };
+
+  const handleEditTransaction = async (data: any) => {
+    if (!editingTransaction) return;
+    try {
+      const res = await axios.put(
+        `/api/transactions/${editingTransaction._id}`,
+        data
+      );
+      if (res.status === 200) {
+        setTransactions((prev) =>
+          prev.map((tx) =>
+            tx._id === editingTransaction._id ? res.data.transaction : tx
+          )
+        );
+        setIsEditModalOpen(false);
+        setEditingTransaction(null);
+        fetchTransactions();
+      }
+    } catch (error: any) {
+      console.error("Error editing transaction:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to edit transaction"
+      );
+    }
   };
 
   useEffect(() => {
@@ -397,7 +427,7 @@ export default function Dashboard() {
                   <th className="px-4 py-2 text-left">Account</th>
                   <th className="px-4 py-2 text-left">Note</th>
                   <th className="px-4 py-2 text-left">Date</th>
-                  <th className="px-4 py-2 text-left">Delete Transaction</th>
+                  <th className="px-4 py-2 text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -423,18 +453,26 @@ export default function Dashboard() {
                     <td className="px-4 py-2">
                       {new Date(tx.date).toLocaleDateString()}
                     </td>
-                    <td>
-                      <div className="pt-6 flex justify-start">
-                        <Button
-                          variant="destructive"
-                          onClick={() => confirmDelete(tx._id)}
-                          disabled={deletingTransactionId === tx._id}
-                        >
-                          {deletingTransactionId === tx._id
-                            ? "Deleting..."
-                            : "Delete"}
-                        </Button>
-                      </div>
+                    <td className="px-4 py-2 flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setEditingTransaction(tx);
+                          setIsEditModalOpen(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+
+                      <Button
+                        variant="destructive"
+                        onClick={() => confirmDelete(tx._id)}
+                        disabled={deletingTransactionId === tx._id}
+                      >
+                        {deletingTransactionId === tx._id
+                          ? "Deleting..."
+                          : "Delete"}
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -460,6 +498,16 @@ export default function Dashboard() {
         open={isAccountDetailsOpen}
         onClose={() => setIsAccountDetailsOpen(false)}
         account={selectedAccount}
+      />
+      <EditTransactionModal
+        open={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingTransaction(null);
+        }}
+        onSubmit={handleEditTransaction}
+        accounts={accounts}
+        transaction={editingTransaction}
       />
     </div>
   );

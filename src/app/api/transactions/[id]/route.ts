@@ -50,3 +50,81 @@ export async function DELETE(
     );
   }
 }
+
+export async function PUT(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
+    const { id } = await context.params;
+    const body = await req.json();
+
+    const transaction = await Transaction.findOne({ _id: id });
+    if (!transaction) {
+      return NextResponse.json(
+        { error: "Transaction not found" },
+        { status: 404 }
+      );
+    }
+
+    const oldAccount = await Account.findOne({ _id: transaction.accountId });
+    if (transaction.type === "income") {
+      oldAccount.balance -= transaction.amount;
+      await oldAccount.save();
+    } else if (transaction.type === "expense") {
+      oldAccount.balance += transaction.amount;
+      await oldAccount.save();
+    } else if (transaction.type === "transfer") {
+      const oldTransferAccount = await Account.findOne({
+        _id: transaction.transferAccountId,
+      });
+
+      if (oldTransferAccount) {
+        oldTransferAccount.balance -= transaction.amount;
+        await oldTransferAccount.save();
+      }
+
+      oldAccount.balance += transaction.amount;
+      await oldAccount.save();
+    }
+
+    transaction.accountId = body.accountId;
+    transaction.type = body.type;
+    transaction.amount = body.amount;
+    transaction.note = body.note;
+    transaction.date = body.date;
+    transaction.transferAccountId = body.transferAccountId || null;
+
+    await transaction.save();
+
+    const newAccount = await Account.findOne({ _id: transaction.accountId });
+    if (transaction.type === "income") {
+      newAccount.balance += transaction.amount;
+      await newAccount.save();
+    } else if (transaction.type === "expense") {
+      newAccount.balance -= transaction.amount;
+      await newAccount.save();
+    } else if (transaction.type === "transfer") {
+      const newTransferAccount = await Account.findOne({
+        _id: transaction.transferAccountId,
+      });
+
+      if (newTransferAccount) {
+        newTransferAccount.balance += transaction.amount;
+        await newTransferAccount.save();
+      }
+
+      newAccount.balance -= transaction.amount;
+      await newAccount.save();
+    }
+
+    return NextResponse.json({ success: true, transaction });
+  } catch (err: any) {
+    console.error("Error updating Transaction:", err);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
