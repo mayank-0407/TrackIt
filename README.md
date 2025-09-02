@@ -44,15 +44,20 @@ npm install
 ```bash
 Create a .env.local file in root:
 
-# MongoDB
-MONGO_URI=your_mongodb_connection_string
+# Mongo
+MONGODB_URI=
 
-# JWT Secret
-JWT_SECRET=your_jwt_secret_key
+# NextAuth
+NEXTAUTH_URL=
+NEXTAUTH_SECRET=
 
-# Email (Gmail App Password required)
-EMAIL_USER=your_gmail@gmail.com
-EMAIL_PASS=your_google_app_password
+ENCRYPTION_KEY=
+JWT_SECRET=
+
+BASE_URL=https://trackit.mayankaggarwal.me
+
+EMAIL_USER=
+EMAIL_PASS=
 ```
 
 ⚠️ Note: For Gmail, enable 2FA and create an App Password. Normal Gmail password won’t work.
