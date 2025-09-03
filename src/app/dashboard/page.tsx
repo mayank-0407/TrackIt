@@ -23,6 +23,8 @@ import {
 import AccountDetailsModal from "@/components/AccountDetailsModal";
 import { Account } from "@/lib/account";
 import EditTransactionModal from "@/components/EditTransactionModal";
+import { Download } from "lucide-react";
+import DownloadModal from "@/components/DownloadModal";
 
 type Transaction = {
   _id: string;
@@ -62,6 +64,7 @@ export default function Dashboard() {
   // selected account for modal
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [isAccountDetailsOpen, setIsAccountDetailsOpen] = useState(false);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
@@ -458,6 +461,14 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          <Button
+            variant="outline"
+            onClick={() => setIsDownloadModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+          </Button>
         </div>
 
         {/* Transactions Table */}
@@ -556,6 +567,10 @@ export default function Dashboard() {
         onSubmit={handleEditTransaction}
         accounts={accounts}
         transaction={editingTransaction}
+      />
+      <DownloadModal
+        open={isDownloadModalOpen}
+        onClose={() => setIsDownloadModalOpen(false)}
       />
     </div>
   );
