@@ -67,6 +67,49 @@ export default function Dashboard() {
     useState<Transaction | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  const [dateFilter, setDateFilter] = useState<string>("last30");
+  const [customRange, setCustomRange] = useState<{
+    start: string;
+    end: string;
+  } | null>(null);
+
+  const filterByDate = (txs: Transaction[]) => {
+    const now = new Date();
+    let start: Date;
+
+    switch (dateFilter) {
+      case "last10":
+        start = new Date();
+        start.setDate(now.getDate() - 10);
+        break;
+      case "last20":
+        start = new Date();
+        start.setDate(now.getDate() - 20);
+        break;
+      case "last30":
+        start = new Date();
+        start.setDate(now.getDate() - 30);
+        break;
+      case "last60":
+        start = new Date();
+        start.setDate(now.getDate() - 60);
+        break;
+      case "custom":
+        if (customRange?.start && customRange?.end) {
+          const startDate = new Date(customRange.start);
+          const endDate = new Date(customRange.end);
+          return txs.filter(
+            (t) => new Date(t.date) >= startDate && new Date(t.date) <= endDate
+          );
+        }
+        return txs;
+      default:
+        return txs; // no filter = return all
+    }
+
+    return txs.filter((t) => new Date(t.date) >= start);
+  };
+
   // Fetch accounts
   const fetchAccounts = async () => {
     try {
@@ -85,69 +128,35 @@ export default function Dashboard() {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
+
       const res = await axios.get("/api/transactions", {
         params: {
           accountId: filterAccount !== "all" ? filterAccount : undefined,
         },
       });
-      const txs: Transaction[] = res.data.transactions || [];
-      txs.sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        if (dateB.getTime() !== dateA.getTime()) {
-          return dateB.getTime() - dateA.getTime();
-        }
-        const createdA = new Date(a.createdAt);
-        const createdB = new Date(b.createdAt);
-        return createdB.getTime() - createdA.getTime();
-      });
+
+      let txs: Transaction[] = res.data.transactions || [];
+      txs.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
 
       setTransactions(txs);
 
-      // calculate summary for current month
-      const currentMonth = new Date().getMonth();
-      const filtered = txs.filter(
-        (t) => new Date(t.date).getMonth() === currentMonth
-      );
+      // 🔹 Apply date filter on the frontend
+      let filteredTxs = filterByDate(txs);
 
-      const inc = filtered
+      // 🔹 Calculate summary from filtered transactions
+      const inc = filteredTxs
         .filter((t) => t.type === "income")
-        .reduce((sum, t) => sum + t.amount, 0);
-      const exp = filtered
+        .reduce((s, t) => s + t.amount, 0);
+      const exp = filteredTxs
         .filter((t) => t.type === "expense")
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((s, t) => s + t.amount, 0);
 
       setIncome(inc);
       setExpenses(exp);
       setBalance(inc - exp);
-
-      // account-wise net calculation including accounts with no transactions
-      const accSummary: {
-        [key: string]: { name: string; type: string; net: number };
-      } = {};
-
-      accounts.forEach((acc) => {
-        accSummary[acc._id] = { name: acc.name, type: acc.type, net: 0 };
-      });
-
-      filtered.forEach((t) => {
-        if (t.type === "income") {
-          accSummary[t.accountId._id].net += t.amount;
-        } else if (t.type === "expense") {
-          accSummary[t.accountId._id].net -= t.amount;
-        }
-      });
-
-      setAccountSummary(
-        Object.keys(accSummary).map((id) => ({
-          accountId: id,
-          name: accSummary[id].name,
-          type: accSummary[id].type,
-          net: accSummary[id].net,
-        }))
-      );
     } catch (error: any) {
-      console.error("Error fetching transactions:", error);
       toast.error(
         error.response?.data?.message || "Failed to load transactions"
       );
@@ -245,7 +254,7 @@ export default function Dashboard() {
     if (accounts.length > 0) {
       fetchTransactions();
     }
-  }, [accounts, filterAccount]);
+  }, [accounts, filterAccount, dateFilter, customRange]);
 
   // chart data
   const chartData = [
@@ -309,7 +318,7 @@ export default function Dashboard() {
         {/* Account Summary */}
         <div>
           <h2 className="text-xl font-semibold text-gray-700 mb-3">
-            Account Summary (This Month)
+            Account's Balance
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {accounts.map((acc) => (
@@ -394,22 +403,61 @@ export default function Dashboard() {
         </div>
 
         {/* Filter */}
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-          <label className="font-medium text-gray-700">
-            Filter by Account:
-          </label>
-          <select
-            value={filterAccount}
-            onChange={(e) => setFilterAccount(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Accounts</option>
-            {accounts.map((acc) => (
-              <option key={acc._id} value={acc._id}>
-                {acc.name}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+          <div className="flex items-center gap-2">
+            <label className="font-medium">Filter by Account:</label>
+            <select
+              value={filterAccount}
+              onChange={(e) => setFilterAccount(e.target.value)}
+              className="border rounded-md px-3 py-2"
+            >
+              <option value="all">All Accounts</option>
+              {accounts.map((acc) => (
+                <option key={acc._id} value={acc._id}>
+                  {acc.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="font-medium">Filter by Date:</label>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="border rounded-md px-3 py-2"
+            >
+              <option value="last10">Last 10 Days</option>
+              <option value="last20">Last 20 Days</option>
+              <option value="last30">Last 30 Days</option>
+              <option value="last60">Last 2 Months</option>
+              <option value="custom">Custom</option>
+            </select>
+            {dateFilter === "custom" && (
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  onChange={(e) =>
+                    setCustomRange((prev) => ({
+                      start: e.target.value,
+                      end: prev?.end ?? "",
+                    }))
+                  }
+                  className="border rounded-md px-2 py-1"
+                />
+                <input
+                  type="date"
+                  onChange={(e) =>
+                    setCustomRange((prev) => ({
+                      start: prev?.start ?? "",
+                      end: e.target.value,
+                    }))
+                  }
+                  className="border rounded-md px-2 py-1"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Transactions Table */}
