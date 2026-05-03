@@ -40,15 +40,26 @@ export async function POST(req: NextRequest) {
       const txs = await Transaction.find({
         accountId: acc._id,
         date: { $gte: new Date(startDate), $lte: new Date(endDate) },
-      }).lean();
+      }).populate("categoryId").lean();
 
-      const income = txs
-        .filter((t) => t.type === "income")
-        .reduce((s, t) => s + t.amount, 0);
-      const expense = txs
-        .filter((t) => t.type === "expense")
-        .reduce((s, t) => s + t.amount, 0);
-      const balance = income - expense;
+      const incomeTxs = txs.filter((t) => t.type === "income");
+const expenseTxs = txs.filter((t) => t.type === "expense");
+
+const income = incomeTxs.reduce((sum, t) => sum + t.amount, 0);
+const expense = expenseTxs.reduce((sum, t) => sum + t.amount, 0);
+
+const balance = income - expense;
+
+// Category-wise expense calculation
+const categoryTotals: Record<string, number> = {};
+
+expenseTxs.forEach((tx: any) => {
+  const categoryName =
+    tx.categoryId?.name || "Uncategorized";
+
+  categoryTotals[categoryName] =
+    (categoryTotals[categoryName] || 0) + tx.amount;
+});
 
       // Transactions table first
       const transactionsData = [
@@ -67,15 +78,28 @@ export async function POST(req: NextRequest) {
       ];
 
       // Add 2 blank rows, then summary
-      const summaryData = [
-        {},
-        { Type: "Income", Amount: income },
-        { Type: "Expense", Amount: expense },
-        { Type: "Balance", Amount: balance },
-      ];
+      const categoryExpenseData = [
+  {},
+  { Type: "Category Wise Expenses" },
+  ...Object.entries(categoryTotals).map(([category, total]) => ({
+    Type: category,
+    Amount: total,
+  })),
+];
+
+const summaryData = [
+  {},
+  { Type: "Income", Amount: income },
+  { Type: "Expense", Amount: expense },
+  { Type: "Balance", Amount: balance },
+];
 
       // Merge transactions + summary
-      const data = [...transactionsData, ...summaryData];
+      const data = [
+  ...transactionsData,
+  ...summaryData,
+  ...categoryExpenseData,
+];
 
       const ws = XLSX.utils.json_to_sheet(data, { skipHeader: true });
       XLSX.utils.book_append_sheet(wb, ws, acc.name.substring(0, 30));

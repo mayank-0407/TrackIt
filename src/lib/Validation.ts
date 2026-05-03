@@ -28,14 +28,34 @@ export const AccountSchema = z.object({
   cvv: z.string().optional(),
 });
 
-export const TransactionSchema = z.object({
-  accountId: z.string(),
-  type: z.enum(["expense", "income", "transfer"]),
-  amount: z.number().positive(),
-  note: z.string().optional(),
-  date: z.coerce.date(),
-  transferAccountId: z.string().optional(),
-});
+export const TransactionSchema =
+  z.object({
+    accountId: z.string(),
+
+    categoryId: z
+      .string()
+      .optional()
+      .nullable(),
+
+    type: z.enum([
+      "expense",
+      "income",
+      "transfer",
+    ]),
+
+    amount: z.number(),
+
+    date: z.coerce.date(),
+
+    note: z
+      .string()
+      .optional(),
+
+    transferAccountId: z
+      .string()
+      .optional()
+      .nullable(),
+  });
 
 export const ForgotPasswordSchema = z.object({
   email: z.string(),

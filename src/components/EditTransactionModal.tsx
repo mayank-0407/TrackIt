@@ -13,14 +13,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
+type Category = {
+  _id: string;
+  name: string;
+};
+
 type EditTransactionModalProps = {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
-  accounts: { _id: string; name: string }[];
+
+  accounts: {
+    _id: string;
+    name: string;
+  }[];
+
+  categories: Category[];
+
   transaction: {
     _id: string;
-    accountId: { _id: string; name: string };
+    accountId: {
+      _id: string;
+      name: string;
+    };
+
+    categoryId?: {
+      _id: string;
+      name: string;
+    };
+
     type: "expense" | "income" | "transfer";
     amount: number;
     note?: string;
@@ -34,10 +55,12 @@ export default function EditTransactionModal({
   onClose,
   onSubmit,
   accounts,
+  categories,
   transaction,
 }: EditTransactionModalProps) {
   const [formData, setFormData] = useState({
     accountId: "",
+    categoryId: "",
     type: "expense",
     amount: "",
     note: "",
@@ -45,11 +68,14 @@ export default function EditTransactionModal({
     transferAccountId: "",
   });
 
-  // Prefill data when modal opens with a transaction
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Prefill data
   useEffect(() => {
     if (transaction) {
       setFormData({
         accountId: transaction.accountId._id,
+        categoryId: transaction.categoryId?._id || "",
         type: transaction.type,
         amount: transaction.amount.toString(),
         note: transaction.note || "",
@@ -62,22 +88,25 @@ export default function EditTransactionModal({
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+
     try {
       await onSubmit({
         ...formData,
         amount: Number(formData.amount),
       });
+
       toast.success("Transaction updated successfully");
       onClose();
-    } catch (error: any) {
-      console.error("Error in EditTransactionModal:", error);
+    } catch (error) {
+      console.error(error);
       toast.error("Failed to update transaction");
     } finally {
       setIsSubmitting(false);
@@ -87,21 +116,25 @@ export default function EditTransactionModal({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
+
         <DialogHeader>
           <DialogTitle>Edit Transaction</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Account Dropdown */}
+
+          {/* Account */}
           <div>
             <Label>Account</Label>
+
             <select
               name="accountId"
               value={formData.accountId}
               onChange={handleChange}
               className="w-full border rounded-md px-3 py-2"
             >
-              <option value="">Select an account</option>
+              <option value="">Select account</option>
+
               {accounts.map((acc) => (
                 <option key={acc._id} value={acc._id}>
                   {acc.name}
@@ -110,9 +143,35 @@ export default function EditTransactionModal({
             </select>
           </div>
 
+          {/* Category */}
+          {formData.type !== "transfer" && (
+            <div>
+              <Label>Category</Label>
+
+              <select
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select category</option>
+
+                {categories.map((category) => (
+                  <option
+                    key={category._id}
+                    value={category._id}
+                  >
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Type */}
           <div>
             <Label>Type</Label>
+
             <select
               name="type"
               value={formData.type}
@@ -128,6 +187,7 @@ export default function EditTransactionModal({
           {/* Amount */}
           <div>
             <Label>Amount</Label>
+
             <Input
               type="number"
               name="amount"
@@ -140,6 +200,7 @@ export default function EditTransactionModal({
           {/* Note */}
           <div>
             <Label>Note</Label>
+
             <Input
               type="text"
               name="note"
@@ -152,6 +213,7 @@ export default function EditTransactionModal({
           {/* Date */}
           <div>
             <Label>Date</Label>
+
             <Input
               type="date"
               name="date"
@@ -160,16 +222,19 @@ export default function EditTransactionModal({
             />
           </div>
 
-          {formData.type === "transfer" ? (
+          {/* Transfer account */}
+          {formData.type === "transfer" && (
             <div>
               <Label>Transfer Account</Label>
+
               <select
                 name="transferAccountId"
                 value={formData.transferAccountId}
                 onChange={handleChange}
                 className="w-full border rounded-md px-3 py-2"
               >
-                <option value="">Select a Transfer account</option>
+                <option value="">Select transfer account</option>
+
                 {accounts.map((acc) => (
                   <option key={acc._id} value={acc._id}>
                     {acc.name}
@@ -177,17 +242,26 @@ export default function EditTransactionModal({
                 ))}
               </select>
             </div>
-          ) : null}
+          )}
+
         </div>
 
         <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={onClose}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "Updating..." : "Update"}
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );

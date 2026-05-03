@@ -25,11 +25,23 @@ import { Account } from "@/lib/account";
 import EditTransactionModal from "@/components/EditTransactionModal";
 import { Download } from "lucide-react";
 import DownloadModal from "@/components/DownloadModal";
+import AddCategoryModal from "@/components/AddCategoryModal";
+import ManageCategoriesModal from "@/components/ManageCategoriesModal";
 
 type Transaction = {
   _id: string;
-  accountId: { _id: string; name: string; type: string };
-  categoryId: string;
+
+  accountId: {
+    _id: string;
+    name: string;
+    type: string;
+  };
+
+  categoryId?: {
+    _id: string;
+    name: string;
+  };
+
   type: "expense" | "income" | "transfer";
   amount: number;
   note?: string;
@@ -37,6 +49,19 @@ type Transaction = {
   createdAt: string;
   updatedAt?: string;
   userId?: string;
+  transferAccountId?: string;
+};
+
+type CategoryExpense = {
+  categoryId: string;
+  categoryName: string;
+  totalExpense: number;
+};
+
+type Category = {
+  _id: string;
+  name: string;
+  icon?: string;
 };
 
 export default function Dashboard() {
@@ -46,11 +71,22 @@ export default function Dashboard() {
   const [filterAccount, setFilterAccount] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isManageCategoryOpen, setIsManageCategoryOpen] =
+  useState(false);
+
+const [isCategoryModalOpen, setIsCategoryModalOpen] =
+  useState(false);
+const [categories, setCategories] =
+  useState<Category[]>([]);
 
   // summary states
   const [income, setIncome] = useState(0);
   const [expenses, setExpenses] = useState(0);
   const [balance, setBalance] = useState(0);
+
+  const [categoryExpenses, setCategoryExpenses] = useState<
+      CategoryExpense[]
+    >([]);
 
   const [deletingTransactionId, setDeletingTransactionId] = useState<
     string | null
@@ -118,6 +154,7 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const res = await axios.get("/api/accounts");
+      console.log("Acc",res.data)
       setAccounts(res.data.accounts || []);
     } catch (error: any) {
       console.error("Error fetching accounts:", error);
@@ -187,6 +224,29 @@ export default function Dashboard() {
     }
   };
 
+  const fetchCategories = async () => {
+  try {
+    const res = await axios.get(
+      "/api/categories"
+    );
+
+    setCategories(
+      res.data.data || []
+    );
+
+  } catch (error: any) {
+    console.error(
+      "Error fetching categories:",
+      error
+    );
+
+    toast.error(
+      error.response?.data?.error ||
+      "Failed to fetch categories"
+    );
+  }
+};
+
   const handleDeleteTransaction = async (transactionId: any) => {
     setDeletingTransactionId(transactionId);
     try {
@@ -223,6 +283,65 @@ export default function Dashboard() {
       },
     });
   };
+const handleAddCategory = async (
+  data: {
+    name: string;
+    icon?: string;
+  }
+) => {
+  try {
+    const res = await axios.post(
+      "/api/categories",
+      data
+    );
+
+    const newCategory =
+      res.data.data;
+
+    setCategories(
+      (prev) => [
+        ...prev,
+        newCategory,
+      ]
+    );
+
+    toast.success(
+      "Category added successfully"
+    );
+
+    setIsCategoryModalOpen(
+      false
+    );
+
+  } catch (error: any) {
+    console.error(
+      "Error adding category:",
+      error
+    );
+
+    toast.error(
+      error.response?.data?.error ||
+      "Failed to add category"
+    );
+  }
+};
+  const fetchCategoryExpenses = async () => {
+  try {
+    const res = await axios.get(
+      "/api/analytics/category-expense"
+    );
+
+    setCategoryExpenses(
+      res.data.data || []
+    );
+
+  } catch (error: any) {
+    console.error(
+      "Category analytics error:",
+      error
+    );
+  }
+};
 
   const handleEditTransaction = async (data: any) => {
     if (!editingTransaction) return;
@@ -251,6 +370,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchAccounts();
+    fetchCategories();
+    fetchCategoryExpenses();
   }, []);
 
   useEffect(() => {
@@ -275,12 +396,21 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-3xl font-bold text-blue-600">Dashboard</h1>
           <div className="flex gap-2">
+          <Button
+  onClick={() =>
+    setIsManageCategoryOpen(true)
+  }
+  className="bg-purple-600 text-white hover:bg-purple-700"
+>
+  Categories
+</Button>
             <Button
               onClick={() => setIsAccountModalOpen(true)}
               className="bg-green-600 text-white hover:bg-green-700"
             >
               + Add Account
             </Button>
+            
             <Button
               onClick={() => setIsModalOpen(true)}
               className="bg-blue-600 text-white hover:bg-blue-700"
@@ -353,6 +483,53 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+
+        {/* Current Month Category Expenses */}
+<div>
+  <h2 className="text-xl font-semibold text-gray-700 mb-3">
+    This Month Expenses by Category
+  </h2>
+
+  {categoryExpenses.length === 0 ? (
+    <p className="text-gray-500">
+      No category expenses found.
+    </p>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+      {categoryExpenses.map((category) => (
+        <Card
+          key={category.categoryId}
+          className="shadow-sm"
+        >
+          <CardContent className="p-4">
+
+            <div className="flex justify-between items-center">
+
+              <div>
+                <p className="text-gray-500 text-sm">
+                  Category
+                </p>
+
+                <h3 className="text-lg font-semibold">
+                  {category.categoryName}
+                </h3>
+              </div>
+
+              <div className="text-red-600 font-bold text-lg">
+                ₹
+                {category.totalExpense.toLocaleString()}
+              </div>
+
+            </div>
+
+          </CardContent>
+        </Card>
+      ))}
+
+    </div>
+  )}
+</div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -544,9 +721,14 @@ export default function Dashboard() {
       {/* Modals */}
       <AddTransactionModal
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleAddTransaction}
+        onClose={() =>
+          setIsModalOpen(false)
+        }
+        onSubmit={
+          handleAddTransaction
+        }
         accounts={accounts}
+        categories={categories}
       />
       <AddAccountModal
         open={isAccountModalOpen}
@@ -559,19 +741,40 @@ export default function Dashboard() {
         account={selectedAccount}
       />
       <EditTransactionModal
-        open={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingTransaction(null);
-        }}
-        onSubmit={handleEditTransaction}
-        accounts={accounts}
-        transaction={editingTransaction}
-      />
+  open={isEditModalOpen}
+  onClose={() => {
+    setIsEditModalOpen(false);
+    setEditingTransaction(null);
+  }}
+  onSubmit={handleEditTransaction}
+  accounts={accounts}
+  categories={categories}
+  transaction={editingTransaction}
+/>
       <DownloadModal
         open={isDownloadModalOpen}
         onClose={() => setIsDownloadModalOpen(false)}
       />
+      <ManageCategoriesModal
+  open={isManageCategoryOpen}
+  onClose={() =>
+    setIsManageCategoryOpen(false)
+  }
+  categories={categories}
+  refreshCategories={
+    fetchCategories
+  }
+  onAddClick={() =>
+    setIsCategoryModalOpen(true)
+  }
+/>
+<AddCategoryModal
+  open={isCategoryModalOpen}
+  onClose={() =>
+    setIsCategoryModalOpen(false)
+  }
+  onSubmit={handleAddCategory}
+/>
     </div>
   );
 }

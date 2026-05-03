@@ -17,6 +17,11 @@ const TransactionSchema = new Schema(
     amount: { type: Number, required: true, min: 0 },
     note: { type: String },
     date: { type: Date, default: () => new Date() },
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+      required: true
+    }
   },
   { timestamps: true }
 );

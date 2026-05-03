@@ -57,10 +57,12 @@ export async function PUT(
 ) {
   try {
     await connectDB();
+
     const { id } = await context.params;
     const body = await req.json();
 
     const transaction = await Transaction.findOne({ _id: id });
+
     if (!transaction) {
       return NextResponse.json(
         { error: "Transaction not found" },
@@ -68,17 +70,24 @@ export async function PUT(
       );
     }
 
-    const oldAccount = await Account.findOne({ _id: transaction.accountId });
+    // Reverse old balances
+    const oldAccount = await Account.findOne({
+      _id: transaction.accountId,
+    });
+
     if (transaction.type === "income") {
       oldAccount.balance -= transaction.amount;
       await oldAccount.save();
-    } else if (transaction.type === "expense") {
+    } 
+    else if (transaction.type === "expense") {
       oldAccount.balance += transaction.amount;
       await oldAccount.save();
-    } else if (transaction.type === "transfer") {
-      const oldTransferAccount = await Account.findOne({
-        _id: transaction.transferAccountId,
-      });
+    } 
+    else if (transaction.type === "transfer") {
+      const oldTransferAccount =
+        await Account.findOne({
+          _id: transaction.transferAccountId,
+        });
 
       if (oldTransferAccount) {
         oldTransferAccount.balance -= transaction.amount;
@@ -89,26 +98,39 @@ export async function PUT(
       await oldAccount.save();
     }
 
+    // Update transaction fields
     transaction.accountId = body.accountId;
+    transaction.categoryId =
+      body.type !== "transfer"
+        ? body.categoryId
+        : null;
+
     transaction.type = body.type;
     transaction.amount = body.amount;
     transaction.note = body.note;
     transaction.date = body.date;
-    transaction.transferAccountId = body.transferAccountId || null;
+    transaction.transferAccountId =
+      body.transferAccountId || null;
 
     await transaction.save();
 
-    const newAccount = await Account.findOne({ _id: transaction.accountId });
+    // Apply new balances
+    const newAccount = await Account.findOne({
+      _id: transaction.accountId,
+    });
     if (transaction.type === "income") {
       newAccount.balance += transaction.amount;
       await newAccount.save();
-    } else if (transaction.type === "expense") {
+    } 
+    else if (transaction.type === "expense") {
       newAccount.balance -= transaction.amount;
       await newAccount.save();
-    } else if (transaction.type === "transfer") {
-      const newTransferAccount = await Account.findOne({
-        _id: transaction.transferAccountId,
-      });
+    } 
+    else if (transaction.type === "transfer") {
+      const newTransferAccount =
+        await Account.findOne({
+          _id: transaction.transferAccountId,
+        });
 
       if (newTransferAccount) {
         newTransferAccount.balance += transaction.amount;
@@ -119,9 +141,25 @@ export async function PUT(
       await newAccount.save();
     }
 
-    return NextResponse.json({ success: true, transaction });
+    // return populated data
+    const updatedTransaction =
+      await Transaction.findById(
+        transaction._id
+      )
+        .populate("accountId")
+        .populate("categoryId");
+
+    return NextResponse.json({
+      success: true,
+      transaction: updatedTransaction,
+    });
+
   } catch (err: any) {
-    console.error("Error updating Transaction:", err);
+    console.error(
+      "Error updating transaction:",
+      err
+    );
+
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
