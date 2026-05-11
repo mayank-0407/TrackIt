@@ -154,10 +154,8 @@ const [categories, setCategories] =
     try {
       setLoading(true);
       const res = await axios.get("/api/accounts");
-      console.log("Acc",res.data)
       setAccounts(res.data.accounts || []);
     } catch (error: any) {
-      console.error("Error fetching accounts:", error);
       toast.error(error.response?.data?.message || "Failed to load accounts");
     } finally {
       setLoading(false);
@@ -219,7 +217,6 @@ const [categories, setCategories] =
         toast.error(res.data.error);
       }
     } catch (error: any) {
-      console.error("Error adding transaction:", error);
       toast.error(error.response?.data?.message || "Failed to add transaction");
     }
   };
@@ -235,10 +232,6 @@ const [categories, setCategories] =
     );
 
   } catch (error: any) {
-    console.error(
-      "Error fetching categories:",
-      error
-    );
 
     toast.error(
       error.response?.data?.error ||
@@ -254,7 +247,6 @@ const [categories, setCategories] =
       toast.success("Transaction deleted successfully");
       setTransactions((prev) => prev.filter((tx) => tx._id !== transactionId));
     } catch (err) {
-      console.error("Error deleting Transaction:", err);
       toast.error("Failed to delete transaction");
     } finally {
       setDeletingTransactionId(null);
@@ -270,7 +262,6 @@ const [categories, setCategories] =
       setIsAccountModalOpen(false);
       fetchTransactions();
     } catch (error: any) {
-      console.error("Error adding account:", error);
       toast.error(error.response?.data?.message || "Failed to add account");
     }
   };
@@ -314,10 +305,6 @@ const handleAddCategory = async (
     );
 
   } catch (error: any) {
-    console.error(
-      "Error adding category:",
-      error
-    );
 
     toast.error(
       error.response?.data?.error ||
@@ -361,7 +348,6 @@ const handleAddCategory = async (
         fetchTransactions();
       }
     } catch (error: any) {
-      console.error("Error editing transaction:", error);
       toast.error(
         error.response?.data?.message || "Failed to edit transaction"
       );
