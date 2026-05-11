@@ -112,6 +112,8 @@ const [categories, setCategories] =
     end: string;
   } | null>(null);
 
+  const [retryCount, setRetryCount] = useState(0);
+
   const filterByDate = (txs: Transaction[]) => {
     const now = new Date();
     let start: Date;
@@ -163,45 +165,47 @@ const [categories, setCategories] =
   };
 
   // Fetch transactions
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true);
+  const fetchTransactions = async (isRetry = false) => {
+  try {
+    setLoading(true);
 
-      const res = await axios.get("/api/transactions", {
-        params: {
-          accountId: filterAccount !== "all" ? filterAccount : undefined,
-        },
-      });
+    const res = await axios.get("/api/transactions", {
+      params: {
+        accountId: filterAccount !== "all" ? filterAccount : undefined,
+      },
+    });
 
-      let txs: Transaction[] = res.data.transactions || [];
-      txs.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
+    let txs: Transaction[] = res.data.transactions || [];
+    txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      setTransactions(txs);
+    setTransactions(txs);
 
-      // 🔹 Apply date filter on the frontend
-      let filteredTxs = filterByDate(txs);
+    const filteredTxs = filterByDate(txs);
 
-      // 🔹 Calculate summary from filtered transactions
-      const inc = filteredTxs
-        .filter((t) => t.type === "income")
-        .reduce((s, t) => s + t.amount, 0);
-      const exp = filteredTxs
-        .filter((t) => t.type === "expense")
-        .reduce((s, t) => s + t.amount, 0);
+    const inc = filteredTxs
+      .filter((t) => t.type === "income")
+      .reduce((s, t) => s + t.amount, 0);
 
-      setIncome(inc);
-      setExpenses(exp);
-      setBalance(inc - exp);
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Failed to load transactions"
-      );
-    } finally {
-      setLoading(false);
+    const exp = filteredTxs
+      .filter((t) => t.type === "expense")
+      .reduce((s, t) => s + t.amount, 0);
+
+    setIncome(inc);
+    setExpenses(exp);
+    setBalance(inc - exp);
+
+  } catch (error: any) {
+    toast.error("Failed to load transactions");
+
+    // 🔥 auto retry logic (important)
+    if (!isRetry && retryCount < 2) {
+      setRetryCount((p) => p + 1);
+      setTimeout(() => fetchTransactions(true), 1500);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Add transaction
   const handleAddTransaction = async (data: any) => {
@@ -364,10 +368,8 @@ const handleAddCategory = async (
   }, []);
 
   useEffect(() => {
-    if (accounts.length > 0) {
-      fetchTransactions();
-    }
-  }, [accounts, filterAccount, dateFilter, customRange]);
+    fetchTransactions();
+  }, [filterAccount, dateFilter, customRange]);
 
   // chart data
   const chartData = [
