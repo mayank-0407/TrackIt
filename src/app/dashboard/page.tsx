@@ -195,10 +195,11 @@ const [categories, setCategories] =
     setBalance(inc - exp);
 
   } catch (error: any) {
-    toast.error("Failed to load transactions");
+    if(retryCount===4)
+      toast.error("Failed to load transactions");
 
     // 🔥 auto retry logic (important)
-    if (!isRetry && retryCount < 2) {
+    if (!isRetry && retryCount < 4) {
       setRetryCount((p) => p + 1);
       setTimeout(() => fetchTransactions(true), 1500);
     }
