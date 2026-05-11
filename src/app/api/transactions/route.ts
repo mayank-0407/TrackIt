@@ -181,65 +181,48 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(
-  req: Request
-) {
+export async function GET(req: Request) {
   try {
     await connectDB();
 
-    const {
-      searchParams,
-    } = new URL(req.url);
+    const session: any = await getServerSession(authOptions);
 
-    const accountId =
-      searchParams.get(
-        "accountId"
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
       );
-
-    const filter: Record<
-      string,
-      any
-    > = {};
-
-    if (
-      accountId &&
-      accountId !== "all"
-    ) {
-      filter.accountId =
-        accountId;
     }
 
-    const transactions =
-      await Transaction.find(
-        filter
-      )
-        .populate("accountId")
-        .populate("categoryId")
-        .sort({
-          date: -1,
-        });
+    const userId = session.user.id;
+
+    const { searchParams } = new URL(req.url);
+
+    const accountId = searchParams.get("accountId");
+
+    const filter: Record<string, any> = {
+      userId, // 🔥 ALWAYS FIRST FILTER
+    };
+
+    if (accountId && accountId !== "all") {
+      filter.accountId = accountId;
+    }
+
+    const transactions = await Transaction.find(filter)
+      .populate("accountId")
+      .populate("categoryId")
+      .sort({ date: -1 });
 
     return NextResponse.json(
-      {
-        transactions,
-      },
-      {
-        status: 200,
-      }
+      { transactions },
+      { status: 200 }
     );
   } catch (error) {
-    console.error(
-      "Fetch transactions error:",
-      error
-    );
+    console.error("Fetch transactions error:", error);
 
     return NextResponse.json(
-      {
-        error: "Server error",
-      },
-      {
-        status: 500,
-      }
+      { error: "Server error" },
+      { status: 500 }
     );
   }
 }
