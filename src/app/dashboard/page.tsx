@@ -213,6 +213,7 @@ const [categories, setCategories] =
         toast.success("Transaction added successfully");
         setIsModalOpen(false);
         fetchTransactions();
+        fetchAccounts();
       } else if (res.status === 203) {
         toast.error(res.data.error);
       }
@@ -246,6 +247,7 @@ const [categories, setCategories] =
       await axios.delete(`/api/transactions/${transactionId}`);
       toast.success("Transaction deleted successfully");
       setTransactions((prev) => prev.filter((tx) => tx._id !== transactionId));
+      fetchAccounts();
     } catch (err) {
       toast.error("Failed to delete transaction");
     } finally {
@@ -346,6 +348,7 @@ const handleAddCategory = async (
         setIsEditModalOpen(false);
         setEditingTransaction(null);
         fetchTransactions();
+        fetchAccounts();
       }
     } catch (error: any) {
       toast.error(
