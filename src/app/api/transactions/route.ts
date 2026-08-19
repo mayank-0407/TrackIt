@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Transaction from "@/models/Transaction";
 import { TransactionSchema } from "@/lib/Validation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/options";
 import Account from "@/models/Account";
+import { getAuthenticatedUserId } from "@/lib/mobileAuth";
 
 export async function POST(req: Request) {
   try {
@@ -26,12 +25,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const session: any =
-      await getServerSession(
-        authOptions
-      );
-
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
       return NextResponse.json(
         {
           error: "Unauthorized",
@@ -129,8 +124,7 @@ export async function POST(req: Request) {
         date:
           parsed.data.date,
 
-        userId:
-          session.user.id,
+        userId,
 
         // category only for non-transfer
         categoryId:
@@ -185,16 +179,13 @@ export async function GET(req: Request) {
   try {
     await connectDB();
 
-    const session: any = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
-
-    const userId = session.user.id;
 
     const { searchParams } = new URL(req.url);
 
@@ -208,10 +199,20 @@ export async function GET(req: Request) {
       filter.accountId = accountId;
     }
 
-    const transactions = await Transaction.find(filter)
-      .populate("accountId")
-      .populate("categoryId")
-      .sort({ date: -1 });
+    let transactions;
+    try {
+      transactions = await Transaction.find(filter)
+        .populate("accountId")
+        .populate("categoryId")
+        .sort({ date: -1 })
+        .lean();
+    } catch (populateError) {
+      console.error("Transaction category population error:", populateError);
+      transactions = await Transaction.find(filter)
+        .populate("accountId")
+        .sort({ date: -1 })
+        .lean();
+    }
 
     return NextResponse.json(
       { transactions },

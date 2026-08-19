@@ -20,7 +20,7 @@ const TransactionSchema = new Schema(
     categoryId: {
       type: Schema.Types.ObjectId,
       ref: "Category",
-      required: true
+      required: false,
     }
   },
   { timestamps: true }

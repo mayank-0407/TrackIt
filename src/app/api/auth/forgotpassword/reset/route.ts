@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import { ForgotPasswordSchema } from "@/lib/Validation";
 import { sendPasswordChangedConfirmation } from "@/lib/sendForgotPasswordConfirmation";
+import { verifyEmailToken } from "@/lib/emailToken";
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +16,16 @@ export async function POST(req: Request) {
     }
 
     const { email, password } = parsed.data;
+    const token = (body as any).token;
+
+    if (!token) {
+      return NextResponse.json({ error: "Token missing" }, { status: 400 });
+    }
+
+    const decoded = verifyEmailToken(token);
+    if (!decoded || decoded.email !== email) {
+      return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
+    }
 
     await connectDB();
 

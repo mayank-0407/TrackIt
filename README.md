@@ -69,6 +69,19 @@ npm run dev
 
 Open http://localhost:3000
 
+### Mobile app
+
+The Expo React Native client lives in `mobile/` and uses the same API and MongoDB data as the web app.
+
+```bash
+cd mobile
+cp .env.example .env
+# Set EXPO_PUBLIC_API_URL to the reachable web app URL
+npm start
+```
+
+Use your computer's LAN IP instead of `localhost` when testing on a physical device. The mobile client supports sign-in, live balances, accounts, transaction history, and adding expenses.
+
 ### 5. Deploy on Vercel
 
 - Push code to GitHub

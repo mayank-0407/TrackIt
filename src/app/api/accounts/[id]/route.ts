@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Account from "@/models/Account";
-import { getServerSession } from "next-auth";
 import { encrypt } from "@/lib/encryption";
 import { AccountSchema } from "@/lib/Validation";
-import { authOptions } from "../../auth/[...nextauth]/options";
+import { getAuthenticatedUserId } from "@/lib/mobileAuth";
 
 export async function GET(
   req: Request,
@@ -14,7 +13,9 @@ export async function GET(
     await connectDB();
 
     const { id } = await context.params;
-    const account = await Account.findById(id);
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const account = await Account.findOne({ _id: id, userId });
 
     if (!account) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
@@ -34,7 +35,9 @@ export async function DELETE(
   try {
     await connectDB();
     const { id } = await context.params;
-    const account = await Account.findByIdAndDelete(id);
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const account = await Account.findOneAndDelete({ _id: id, userId });
 
     if (!account) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
@@ -59,8 +62,8 @@ export async function PUT(
     const { id } = await context.params;
     const body = await req.json();
 
-    const session: any = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -81,7 +84,7 @@ export async function PUT(
     }
 
     const updatedAccount = await Account.findOneAndUpdate(
-      { _id: id, userId: session.user.id },
+      { _id: id, userId },
       { $set: updateData },
       { new: true } 
     );

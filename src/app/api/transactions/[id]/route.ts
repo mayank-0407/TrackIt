@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Transaction from "@/models/Transaction";
 import Account from "@/models/Account";
+import { getAuthenticatedUserId } from "@/lib/mobileAuth";
 
 export async function DELETE(
   req: Request,
@@ -9,8 +10,10 @@ export async function DELETE(
 ) {
   try {
     await connectDB();
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await context.params;
-    const transaction = await Transaction.findOne({ _id: id });
+    const transaction = await Transaction.findOne({ _id: id, userId });
 
     if (!transaction) {
       return NextResponse.json(
@@ -57,11 +60,13 @@ export async function PUT(
 ) {
   try {
     await connectDB();
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await context.params;
     const body = await req.json();
 
-    const transaction = await Transaction.findOne({ _id: id });
+    const transaction = await Transaction.findOne({ _id: id, userId });
 
     if (!transaction) {
       return NextResponse.json(
