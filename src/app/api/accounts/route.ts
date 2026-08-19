@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Account from "@/models/Account";
 import { AccountSchema } from "@/lib/Validation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/options";
 import { encrypt } from "@/lib/encryption";
+import { getAuthenticatedUserId } from "@/lib/mobileAuth";
 
 export async function POST(req: Request) {
   try {
@@ -16,8 +15,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
 
-    const session: any = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const data = {
@@ -29,7 +28,7 @@ export async function POST(req: Request) {
         ? encrypt(parsed.data.cardNumber)
         : undefined,
       cvv: parsed.data.cvv ? encrypt(parsed.data.cvv) : undefined,
-      userId: session.user.id,
+      userId,
     };
 
     const account = await Account.create(data);
@@ -41,15 +40,13 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await connectDB();
-    const session: any = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const userId = session.user.id;
-
     const accounts = await Account.find({ userId });
     return NextResponse.json({ accounts }, { status: 200 });
   } catch (error) {

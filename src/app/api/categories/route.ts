@@ -1,25 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "../auth/[...nextauth]/options";
 import { connectDB } from "@/lib/db";
+import { getAuthenticatedUserId } from "@/lib/mobileAuth";
 
 import Category from "@/models/Category";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    const session: any = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
-
-    const userId = session.user.id;
 
     const categories = await Category.find({
       $or: [
@@ -50,16 +45,13 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const session: any = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
-
-    const userId = session.user.id;
 
     const body = await req.json();
 

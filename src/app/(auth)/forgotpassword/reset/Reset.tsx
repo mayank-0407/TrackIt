@@ -37,6 +37,7 @@ export default function Reset() {
       const res = await axios.post("/api/auth/forgotpassword/reset", {
         email: thisUserEmail,
         password: formData.get("password"),
+        token,
       });
 
       if (res?.status === 200) {

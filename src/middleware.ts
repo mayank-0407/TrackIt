@@ -4,10 +4,30 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname.startsWith("/api")) {
+    const origin = request.headers.get("origin");
+    const allowedOrigins = new Set([
+      "http://localhost:8081",
+      "http://127.0.0.1:8081",
+      process.env.MOBILE_WEB_ORIGIN,
+    ]);
+    const response = request.method === "OPTIONS"
+      ? new NextResponse(null, { status: 204 })
+      : NextResponse.next();
+
+    if (origin && allowedOrigins.has(origin)) {
+      response.headers.set("Access-Control-Allow-Origin", origin);
+      response.headers.set("Vary", "Origin");
+      response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+      response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    }
+
+    return response;
+  }
+
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/static") ||
-    pathname.startsWith("/api") ||
     /\.(.*)$/.test(pathname)
   ) {
     return NextResponse.next();
@@ -43,5 +63,6 @@ export const config = {
     "/dashboard/:path*",
     "/verify",
     "/verify/:path*",
+    "/api/:path*",
   ],
 };

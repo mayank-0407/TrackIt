@@ -1,23 +1,16 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "../../auth/[...nextauth]/options";
-
 import { connectDB } from "@/lib/db";
+import { getAuthenticatedUserId } from "@/lib/mobileAuth";
 
 import Transaction from "@/models/Transaction";
 import mongoose from "mongoose";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await connectDB();
 
-    const session: any =
-      await getServerSession(
-        authOptions
-      );
-
-    if (!session?.user?.id) {
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
       return NextResponse.json(
         {
           error:
@@ -60,7 +53,7 @@ export async function GET() {
         {
           $match: {
             userId: new mongoose.Types.ObjectId(
-            session.user.id
+            userId
           ),
 
             type:

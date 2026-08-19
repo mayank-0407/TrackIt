@@ -21,7 +21,8 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials: any) {
         const parsed = LoginSchema.safeParse(credentials);
         if (!parsed.success) return null;
-        const { email, password } = parsed.data;
+        const email = parsed.data.email.trim().toLowerCase();
+        const { password } = parsed.data;
         try {
           await connectDB();
 
